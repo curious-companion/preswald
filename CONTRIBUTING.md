@@ -8,10 +8,12 @@ Thank you for your interest in contributing to **Preswald**! This document outli
 2. [Setup Guide](#setup-guide)
 3. [Development Workflow](#development-workflow)
 4. [Style Guide](#style-guide)
-5. [Pull Request Guidelines](#pull-request-guidelines)
-6. [Issue Reporting Guidelines](#issue-reporting-guidelines)
-7. [Community Support](#community-support)
-8. [Acknowledgments](#acknowledgments)
+5. [Code Quality](#code-quality)
+6. [Claiming an Issue](#claiming-an-issue)
+7. [Pull Request Guidelines](#pull-request-guidelines)
+8. [Issue Reporting Guidelines](#issue-reporting-guidelines)
+9. [Community Support](#community-support)
+10. [Acknowledgments](#acknowledgments)
 
 ## Project Structure
 
@@ -22,7 +24,7 @@ preswald/
 ├── examples/       # Sample apps to showcase Preswald's capabilities
 ├── tutorial/       # Tutorial for getting started with Preswald
 ├── tests/          # Unit and integration tests
-├── setup.py        # Python package configuration
+├── pyproject.toml  # Python package configuration
 └── README.md       # Project overview
 ```
 
@@ -41,24 +43,38 @@ preswald/
 
 We recommend using Conda to manage dependencies:
 
-1. Create and activate a Conda environment:
+1. [OPTIONAL] Install uv (this makes things so much faster):
    ```bash
-   conda create -n preswald python=3.11 -y
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+2. Create and activate a Conda environment:
+   ```bash
+   conda create -n preswald python=3.10 -y
    conda activate preswald
    ```
-2. Install dependencies:
+3. Install dependencies:
    ```bash
    pip install -e ".[dev]"
+
+   or
+
+   uv pip install -e ".[dev]" # if you installed uv
    ```
-3. Set up pre-commit hooks:
+4. Set up pre-commit hooks:
    ```
    pre-commit install
    ```
 
 ### 3. Build the Frontend
 
+Build the frontend once
 ```bash
-python setup.py build_frontend
+python -m preswald.build frontend
+```
+
+Or use watch mode to monitor changes and auto-rebuild
+```bash
+python -m preswald.build watch
 ```
 
 ### 4. Run the Example App
@@ -118,7 +134,7 @@ These configurations ensure your code remains consistent with our standards when
 1. Create and activate another Conda environment for testing:
    ```bash
    conda deactivate # if inside an existing conda env
-   conda create -n preswald-test python=3.11 -y
+   conda create -n preswald-test python=3.10 -y
    conda activate preswald-test
    ```
 2. Clear old builds:
@@ -127,12 +143,12 @@ These configurations ensure your code remains consistent with our standards when
    ```
 3. Build frontend and backend:
    ```bash
-   python setup.py build_frontend
+   python -m preswald.build frontend
    python -m build
    ```
 4. Install the pip package
    ```bash
-   pip install dist/preswald-0.xx.xx.tar.gz
+   uv pip install dist/preswald-0.xx.xx.tar.gz
    ```
 5. Run a test app
    ```
@@ -140,6 +156,9 @@ These configurations ensure your code remains consistent with our standards when
    ```
    Make sure to do step 5 for **all** directories in `examples`, not just `earthquakes`
 
+## Claiming an Issue
+
+Issues are assigned and reviewed on a first come first serve basis. When you begin work on an issue, ensure you leave a comment acknowledging that you have done so such that other users who may be interested in the issue are aware of your work. 
 
 ## Pull Request Guidelines
 

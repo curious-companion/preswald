@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Banner">
+  <img src="assets/PreswaldBanner.png" alt="Banner">
 </p>
 
 
@@ -13,7 +13,7 @@
     <a href="https://www.python.org/downloads/">
         <img src="https://img.shields.io/badge/python-3.7%2B-blue.svg" alt="Python Version">
     </a>
-    <a href="https://join.slack.com/t/preswald-community/shared_invite/zt-31vvfitfm-_vG1HR9hYysR_56u_PfI8Q">
+    <a href="https://join.slack.com/t/structuredlabs-users/shared_invite/zt-33zwhyv3l-6Xu4bHL6b6~bI3z9fvlUig">
         <img src="https://img.shields.io/badge/Slack-Join%20Community-orange" alt="Slack Community">
     </a>
     <a href="https://pypi.org/project/preswald/">
@@ -31,7 +31,7 @@
 <a href="https://app.preswald.com" target="_blank">
 <img src="https://img.shields.io/badge/Cloud-Get Started-orange?style=for-the-badge" alt="Studio">
 </a>
-<a href="https://cal.com/structured" target="_blank">
+<a href="https://cal.com/amruthagujjar" target="_blank">
 <img src="https://img.shields.io/badge/Book%20a%20Demo-Schedule-red?style=for-the-badge" alt="Book a Demo">
 </a>
 </p>
@@ -52,6 +52,7 @@ Preswald tracks state and dependencies, so computations update only when needed 
 - Build interactive reports – Create dashboards where users can change filters and see results update.
 - Run locally or in the cloud – Start your app on your laptop or host it in Preswald Cloud for easy access.
 - Share with a link – No need to send scripts or install dependencies—just share a URL.
+- High-performance GPU charts – Render real-time, interactive charts using fastplotlib, with offscreen GPU acceleration and WebSocket-based streaming to the browser.
 
 <br>
 
@@ -65,6 +66,10 @@ First, install Preswald using pip. https://pypi.org/project/preswald/
 
 ```bash
 pip install preswald
+
+or 
+
+uv pip install preswald
 ```
 
 ![Demo GIF](assets/demo1.gif)
@@ -89,7 +94,7 @@ This will create a folder called `my_project` with all the basics you need:
 
 ### **2. Write Your First App**
 
-Time to make something magical! Open up `hello.py` and write:
+Time to make something magical! Open up `hello.py` and you should see something like this:
 
 ```python
 from preswald import text, plotly, connect, get_df, table
@@ -199,7 +204,7 @@ Check out [CONTRIBUTING.md](CONTRIBUTING.md).
 ## **🎉 Join the Community**
 
 - **GitHub Issues**: Found a bug? Let us know [here](https://github.com/StructuredLabs/preswald/issues).
-- **Community Forum**: Reach out [here](https://join.slack.com/t/preswald-community/shared_invite/zt-31vvfitfm-_vG1HR9hYysR_56u_PfI8Q)
+- **Community Forum**: Reach out [here](https://join.slack.com/t/structuredlabs-users/shared_invite/zt-33zwhyv3l-6Xu4bHL6b6~bI3z9fvlUig)
 - **Discussions**: Share your ideas and ask questions in our [discussion forum](https://github.com/StructuredLabs/preswald/discussions).
 - **Contributors**: Meet the awesome people who make Preswald better [here](https://github.com/StructuredLabs/preswald/graphs/contributors).
 
@@ -219,3 +224,10 @@ Check out [CONTRIBUTING.md](CONTRIBUTING.md).
 ## **📄 License**
 
 Preswald is licensed under the [Apache 2.0 License](LICENSE).
+
+## ✨ Contributors
+
+Thanks to everyone who has contributed to Preswald 💜
+
+[![](https://contrib.rocks/image?repo=StructuredLabs/preswald)](https://github.com/StructuredLabs/preswald/graphs/contributors)
+
