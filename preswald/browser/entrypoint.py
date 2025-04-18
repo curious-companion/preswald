@@ -6,7 +6,7 @@ Python functionality to JavaScript.
 
 import logging
 import sys
-from typing import Any, Optional
+from typing import Any
 
 
 # Configure logging for browser environment
@@ -20,7 +20,7 @@ if not IS_PYODIDE:
     sys.exit(1)
 
 # Import required Pyodide-specific modules
-from js import console  # type: ignore # noqa: E402
+from js import console, window  # type: ignore # noqa: E402
 
 
 # Global service instance
@@ -29,12 +29,13 @@ _script_runner = None
 _client_id = "browser-client"
 
 
-async def initialize_preswald(script_path: Optional[str] = None):
+async def initialize_preswald(script_path: str | None = None):
     """Initialize the Preswald service in the browser"""
     global _service, _script_runner, _client_id
 
     try:
         # Import the service
+        from preswald.engine.managers.branding import BrandingManager
         from preswald.engine.service import PreswaldService
 
         # Initialize the service
@@ -42,6 +43,25 @@ async def initialize_preswald(script_path: Optional[str] = None):
 
         # Register a client
         _script_runner = await _service.register_client(_client_id)
+
+        # Set branding
+        _service.branding_manager = BrandingManager(
+            static_dir="",
+            branding_dir="images",
+        )
+
+        if _service and hasattr(_service, "branding_manager"):
+            branding = _service.branding_manager.get_branding_config_with_data_urls(
+                script_path or ""
+            )
+
+            import json
+
+            branding_json = json.dumps(branding)
+
+            # Set as string property on window
+            window.PRESWALD_BRANDING = branding_json
+            console.log(f"Set PRESWALD_BRANDING as JSON string: {branding_json}")
 
         logger.info(f"Preswald initialized in browser with script: {script_path}")
         console.log("Preswald initialized in browser")
@@ -150,17 +170,15 @@ def expose_to_js():
     """Expose Python functions to JavaScript"""
     import asyncio
 
-    from js import window  # type: ignore
+    # from js import window  # type: ignore
     from pyodide.ffi import create_proxy, to_js  # type: ignore
 
     def wrap_async_function(func):
         """Wrap an async function to be callable from JavaScript, handling both with and without arguments"""
 
         async def wrapper(*args, **kwargs):
-            result = await func(
-                *args, **kwargs
-            )  # ✅ Allows both args and no-args cases
-            return to_js(result)
+            future = asyncio.ensure_future(func(*args, **kwargs))
+            return to_js(future)
 
         return create_proxy(wrapper)
 

@@ -1,23 +1,23 @@
 'use client';
 
-import { X } from 'lucide-react';
-
-import React from 'react';
+import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import * as React from 'react';
+import { useEffect } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import TableOfContents from '@/components/TableOfContents';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 import { cn } from '@/lib/utils';
 
-export default function Sidebar({
+const Sidebar = ({
   sidebarOpen,
   setSidebarOpen,
   navigation,
   branding,
   isCollapsed,
-}) {
+  setIsCollapsed,
+}) => {
   const location = useLocation();
   const primaryColor = branding?.primaryColor || '#000000';
 
@@ -27,12 +27,10 @@ export default function Sidebar({
         <div className="sidebar-nav">
           {!isMobile && (
             <div className="sidebar-header">
-              <img
-                className="sidebar-logo"
-                src={`${branding?.logo}?timstamp=${new Date().getTime()}`}
-                alt={branding?.name}
-              />
-              {!isCollapsed && <span className="sidebar-title">{branding?.name}</span>}
+              <div className="flex items-center">
+                <img src={branding?.logo} alt={branding?.name} className="sidebar-logo" />
+                {!isCollapsed && <span className="sidebar-title">{branding?.name}</span>}
+              </div>
             </div>
           )}
           <nav className="sidebar-nav-list">
@@ -74,32 +72,46 @@ export default function Sidebar({
                   ))}
                 </ul>
               </li>
+              {!isCollapsed && (
+                <li>
+                  <TableOfContents />
+                </li>
+              )}
             </ul>
           </nav>
-        </div>
-        <div className="sidebar-footer">
-          Built By{' '}
-          <a href="https://github.com/structuredlabs/preswald" className="sidebar-footer-link">
-            Preswald
-          </a>
         </div>
       </div>
     </div>
   );
 
+  const applyMainLayoutPadding = (collapsed) => {
+    const mainLayout = document.querySelector('.main-content-layout');
+    if (!mainLayout) {
+      return;
+    }
+
+    if (collapsed) {
+      mainLayout.classList.add('main-content-collapsed-sidebar');
+      mainLayout.classList.remove('main-content-open-sidebar');
+    } else {
+      mainLayout.classList.remove('main-content-collapsed-sidebar');
+      mainLayout.classList.add('main-content-open-sidebar');
+    }
+  };
+
+  useEffect(() => {
+    applyMainLayoutPadding(isCollapsed);
+  }, [isCollapsed]);
+
   return (
-    <>
+    <div>
       {/* Mobile Sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="sidebar-mobile">
           <SheetHeader className="sidebar-mobile-header">
             <div className="flex items-center justify-between">
               <SheetTitle className="sidebar-mobile-title">
-                <img
-                  className="sidebar-logo"
-                  src={`${branding?.logo}?timstamp=${new Date().getTime()}`}
-                  alt={branding?.name}
-                />
+                <img className="sidebar-logo" src={branding?.logo} alt={branding?.name} />
                 <span>{branding?.name}</span>
               </SheetTitle>
             </div>
@@ -117,10 +129,21 @@ export default function Sidebar({
           isCollapsed ? 'sidebar-desktop-collapsed' : 'sidebar-desktop-expanded'
         )}
       >
+        <div
+          role="button"
+          className="desktop-collapse-button"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <PanelLeft />
+        </div>
+
         <div className="sidebar-desktop-content">
           <NavContent />
         </div>
       </div>
-    </>
+    </div>
   );
-}
+};
+
+export { Sidebar };
