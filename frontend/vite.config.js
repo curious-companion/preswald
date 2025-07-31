@@ -4,7 +4,9 @@ import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: "./",
   build: {
+    target: 'esnext',
     outDir: path.join(path.dirname(__dirname), "preswald", "static"),
     emptyOutDir: true,
   },
@@ -19,5 +21,8 @@ export default defineConfig({
     proxy: {
       "/api": "http://localhost:8501", // Forward API requests to FastAPI
     },
+  },
+  worker: {
+    format: 'es',          // "es" enables top-level await
   },
 });

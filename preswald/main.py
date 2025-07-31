@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from preswald.engine.managers.branding import BrandingManager
 from preswald.engine.service import PreswaldService
+from preswald.utils import reactivity_explicitly_disabled
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,9 @@ def create_app(script_path: str | None = None) -> FastAPI:
     """Create and configure the FastAPI application"""
     app = FastAPI()
     service = PreswaldService.initialize(script_path)
+
+    if reactivity_explicitly_disabled():
+        service.disable_reactivity()
 
     # Configure CORS
     app.add_middleware(
@@ -112,6 +116,32 @@ def _register_routes(app: FastAPI):
     _register_static_routes(app)  # order matters for static routes
 
 
+def render_once(script_path: str) -> dict:
+    """
+    Run a Preswald script once in headless mode and return the rendered layout.
+    Intended for CLI use (e.g. PDF export).
+    """
+    from preswald.engine.runner import ScriptRunner
+    from preswald.engine.service import PreswaldService
+
+    service = PreswaldService.initialize(script_path)
+    service.script_path = script_path
+
+    async def noop_message_handler(msg):
+        pass
+
+    runner = ScriptRunner(
+        session_id="cli-export",
+        send_message_callback=noop_message_handler,
+        initial_states={},
+    )
+
+    service.script_runners["cli-export"] = runner
+    runner.run_sync(script_path)  # ← Now sync
+
+    return service.get_rendered_components()
+
+
 def start_server(script: str | None = None, port: int = 8501):
     """Start the FastAPI server"""
     app = create_app(script)
@@ -153,8 +183,10 @@ def _setup_static_files(app: FastAPI) -> BrandingManager:
     assets_dir = static_dir / "assets"
 
     # Ensure directories exist
-    os.makedirs(static_dir, exist_ok=True)
-    os.makedirs(assets_dir, exist_ok=True)
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    else:
+        logging.warning(f"Assets directory not found in package: {assets_dir}")
 
     # Mount static files
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")

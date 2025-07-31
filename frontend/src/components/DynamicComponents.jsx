@@ -4,10 +4,9 @@ import React, { memo, useEffect } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { cn } from '@/lib/utils';
-import { comm } from '@/utils/websocket';
-
 // Utilities
-import { createExtractKeyProps } from '../utils/extractKeyProps';
+import { createExtractKeyProps } from '@/utils/extractKeyProps';
+
 // Widgets
 import AlertWidget from './widgets/AlertWidget';
 import BigNumberWidget from './widgets/BigNumberWidget';
@@ -16,7 +15,7 @@ import ChatWidget from './widgets/ChatWidget';
 import CheckboxWidget from './widgets/CheckboxWidget';
 import DAGVisualizationWidget from './widgets/DAGVisualizationWidget';
 import DataVisualizationWidget from './widgets/DataVisualizationWidget';
-import FastplotlibWidget from './widgets/FastplotlibWidget';
+//import FastplotlibWidget from './widgets/FastplotlibWidget';
 import ImageWidget from './widgets/ImageWidget';
 import JSONViewerWidget from './widgets/JSONViewerWidget';
 import MarkdownRendererWidget from './widgets/MarkdownRendererWidget';
@@ -31,6 +30,7 @@ import SpinnerWidget from './widgets/SpinnerWidget';
 import TableViewerWidget from './widgets/TableViewerWidget';
 import TextInputWidget from './widgets/TextInputWidget';
 import TopbarWidget from './widgets/TopbarWidget';
+import GenericWidget from './widgets/GenericWidget';
 import UnknownWidget from './widgets/UnknownWidget';
 
 const extractKeyProps = createExtractKeyProps();
@@ -72,7 +72,13 @@ const MemoizedComponent = memo(
 
     switch (component.type) {
       case 'sidebar':
-        return <SidebarWidget defaultOpen={component.defaultopen} />;
+        return (
+          <SidebarWidget
+            id={componentId}
+            defaultOpen={component.defaultopen}
+            branding={component.branding}
+          />
+        );
 
       case 'button':
         return (
@@ -86,6 +92,7 @@ const MemoizedComponent = memo(
             disabled={component.disabled}
             isLoading={component.loading}
             variant={component.variant}
+            id={componentId}
           >
             {component.label}
           </ButtonWidget>
@@ -104,11 +111,19 @@ const MemoizedComponent = memo(
             description={component.description}
             size={component.size}
             className={component.className}
+            id={componentId}
           />
         );
 
       case 'matplotlib':
-        return <MatplotlibWidget key={componentKey} {...props} image={component.image} />;
+        return (
+          <MatplotlibWidget
+            key={componentKey}
+            {...props}
+            image={component.image}
+            id={componentId}
+          />
+        );
 
       case 'slider':
         return (
@@ -125,6 +140,7 @@ const MemoizedComponent = memo(
             showValue={component.showValue !== undefined ? component.showValue : true}
             showMinMax={component.showMinMax !== undefined ? component.showMinMax : true}
             variant={component.variant || 'default'}
+            id={componentId}
           />
         );
 
@@ -136,6 +152,7 @@ const MemoizedComponent = memo(
             title={component.title}
             expanded={component.expanded !== false}
             className={component.className}
+            id={componentId}
           />
         );
 
@@ -154,6 +171,7 @@ const MemoizedComponent = memo(
             type={component.type || 'text'}
             size={component.size || 'default'}
             variant={component.variant || 'default'}
+            id={componentId}
           />
         );
 
@@ -167,6 +185,7 @@ const MemoizedComponent = memo(
             description={component.description}
             disabled={component.disabled}
             onChange={(value) => handleUpdate(componentId, value)}
+            id={componentId}
           />
         );
 
@@ -179,6 +198,7 @@ const MemoizedComponent = memo(
             value={component.value || (component.options && component.options[0]) || ''}
             onChange={(value) => handleUpdate(componentId, value)}
             placeholder={component.placeholder}
+            id={componentId}
           />
         );
 
@@ -189,6 +209,7 @@ const MemoizedComponent = memo(
             {...props}
             label={component.label || 'Progress'}
             value={component.value}
+            id={componentId}
           />
         );
 
@@ -201,6 +222,7 @@ const MemoizedComponent = memo(
             size={component.size || 'default'}
             variant={component.variant || 'default'}
             showLabel={component.showLabel !== undefined ? component.showLabel : true}
+            id={componentId}
           />
         );
 
@@ -211,6 +233,7 @@ const MemoizedComponent = memo(
             {...props}
             level={component.level || 'info'}
             message={component.message || component.content || ''}
+            id={componentId}
           />
         );
 
@@ -226,6 +249,7 @@ const MemoizedComponent = memo(
             withCard={component.withCard}
             aspectRatio={component.aspectRatio || 1}
             objectFit={component.objectFit || 'cover'}
+            id={componentId}
           />
         );
 
@@ -237,6 +261,7 @@ const MemoizedComponent = memo(
             markdown={component.markdown || component.content || component.value || ''}
             error={component.error}
             variant={component.variant || 'default'}
+            id={componentId}
           />
         );
 
@@ -251,6 +276,7 @@ const MemoizedComponent = memo(
             onChange={(value) => {
               handleUpdate(componentId, value);
             }}
+            id={componentId}
           />
         );
 
@@ -261,6 +287,7 @@ const MemoizedComponent = memo(
             {...props}
             rowData={component.data || []}
             className={component.className}
+            id={componentId}
           />
         );
 
@@ -272,26 +299,35 @@ const MemoizedComponent = memo(
             data={component.data || {}}
             layout={component.layout || {}}
             config={component.config || {}}
+            id={componentId}
           />
         );
 
       case 'dag':
-        return <DAGVisualizationWidget key={componentKey} {...props} data={component.data || {}} />;
-
-      case 'fastplotlib_component':
-        const { className, data, config, label, src } = component;
         return (
-          <FastplotlibWidget
+          <DAGVisualizationWidget
             key={componentKey}
             {...props}
-            data={component.data}
-            config={component.config}
-            src={src}
-            label={label}
-            className={className}
-            clientId={comm.clientId}
+            data={component.data || {}}
+            id={componentId}
           />
         );
+
+      // case 'fastplotlib_component':
+      //   const { className, data, config, label, src } = component;
+      //   return (
+      //     <FastplotlibWidget
+      //       key={componentKey}
+      //       {...props}
+      //       data={component.data}
+      //       config={component.config}
+      //       src={src}
+      //       label={label}
+      //       className={className}
+      //       clientId={comm.clientId}
+      //       id={componentId}
+      //     />
+      //   );
 
       case 'playground':
         return (
@@ -304,14 +340,26 @@ const MemoizedComponent = memo(
             onChange={(value) => handleUpdate(componentId, value)}
             error={component.error}
             data={component.data}
+            id={componentId}
           />
         );
 
       case 'topbar':
-        return <TopbarWidget key={componentKey} {...props} />;
+        return <TopbarWidget key={componentKey} {...props} id={componentId} />;
 
       case 'separator':
-        return <SeparatorWidget key={componentKey} />;
+        return <SeparatorWidget key={componentKey} id={componentId} />;
+
+      case 'generic':
+        return (
+          <GenericWidget
+            key={componentKey}
+            {...props}
+            value={component.value}
+            mimetype={component.mimetype || 'text/plain'}
+            id={componentId}
+          />
+        );
 
       default:
         console.warn(`[DynamicComponents] Unknown component type: ${component.type}`);
@@ -321,6 +369,7 @@ const MemoizedComponent = memo(
             {...props}
             type={component.type || 'unknown'}
             variant={component.variant || 'default'}
+            id={componentId}
           />
         );
     }
@@ -328,7 +377,7 @@ const MemoizedComponent = memo(
   (prevProps, nextProps) => {
     // Custom comparison function for memoization
     return (
-      prevProps.component.id === nextProps.component.id &&
+      !prevProps.component.shouldRender &&
       prevProps.component.value === nextProps.component.value &&
       prevProps.component.error === nextProps.component.error &&
       prevProps.index === nextProps.index

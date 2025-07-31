@@ -24,15 +24,49 @@ def cli():
     pass
 
 
+def _create_default_init_files(target_dir: str, project_slug: str):
+    """Create default project files in the target directory using templates."""
+    from importlib.resources import as_file, files
+
+    # Read and write hello.py from template
+    with as_file(files("preswald").joinpath("templates/hello.py.template")) as path:
+        with open(path) as f:
+            hello_content = f.read()
+        with open(os.path.join(target_dir, "hello.py"), "w") as f:
+            f.write(hello_content)
+
+    # Read and write preswald.toml from template
+    with as_file(
+        files("preswald").joinpath("templates/preswald.toml.template")
+    ) as path:
+        with open(path) as f:
+            toml_content = f.read().format(project_slug=project_slug)
+        with open(os.path.join(target_dir, "preswald.toml"), "w") as f:
+            f.write(toml_content)
+
+    # Read and write secrets.toml from template
+    with as_file(files("preswald").joinpath("templates/secrets.toml.template")) as path:
+        with open(path) as f:
+            secrets_content = f.read()
+        with open(os.path.join(target_dir, "secrets.toml"), "w") as f:
+            f.write(secrets_content)
+
+    # Read and write sample.csv from template
+    with as_file(files("preswald").joinpath("templates/sample.csv.template")) as path:
+        with open(path) as f:
+            sample_data = f.read()
+        with open(os.path.join(target_dir, "data", "sample.csv"), "w") as f:
+            f.write(sample_data)
+
+
 @cli.command()
 @click.argument("name", default="preswald_project")
 def init(name):
     """
     Initialize a new Preswald project.
-
-    This creates a directory with boilerplate files like `hello.py` and `preswald.toml`.
+    Creates a directory with basic project structure.
     """
-    from preswald.utils import generate_slug, read_template
+    from preswald.utils import generate_slug
 
     try:
         os.makedirs(name, exist_ok=True)
@@ -42,41 +76,26 @@ def init(name):
         # Generate a unique slug for the project
         project_slug = generate_slug(name)
 
-        # Copy default branding files from package resources
+        # Copy default branding files
         import shutil
         from importlib.resources import as_file, files
 
-        # Using a context manager to get the actual file path
         with as_file(files("preswald").joinpath("static/favicon.ico")) as path:
             shutil.copy2(path, os.path.join(name, "images", "favicon.ico"))
 
         with as_file(files("preswald").joinpath("static/logo.png")) as path:
             shutil.copy2(path, os.path.join(name, "images", "logo.png"))
 
-        file_templates = {
-            "hello.py": "hello.py",
-            "preswald.toml": "preswald.toml",
-            "secrets.toml": "secrets.toml",
-            ".gitignore": "gitignore",
-            "pyproject.toml": "pyproject.toml",
-            "data/sample.csv": "sample.csv",
-        }
-
-        for file_name, template_name in file_templates.items():
-            content = read_template(template_name)
-
-            # Replace the default slug in preswald.toml with the generated one
-            if file_name == "preswald.toml":
-                content = content.replace(
-                    'slug = "preswald-project"', f'slug = "{project_slug}"'
-                )
-
-            with open(os.path.join(name, file_name), "w") as f:
-                f.write(content)
+        # Create basic project files
+        _create_default_init_files(name, project_slug)
 
         # Track initialization
         telemetry.track_command(
-            "init", {"project_name": name, "project_slug": project_slug}
+            "init",
+            {
+                "project_name": name,
+                "project_slug": project_slug,
+            },
         )
 
         click.echo(f"Initialized a new Preswald project in '{name}/' 🎉!")
@@ -169,7 +188,7 @@ def run(port, log_level, disable_new_tab):
 @click.argument("script", default=None, required=False)
 @click.option(
     "--target",
-    type=click.Choice(["local", "gcp", "aws", "structured"], case_sensitive=False),
+    type=click.Choice(["local", "gcp", "aws"], case_sensitive=False),
     default="local",
     help="Target platform for deployment.",
 )
@@ -182,15 +201,7 @@ def run(port, log_level, disable_new_tab):
     default=None,
     help="Set the logging level (overrides config file)",
 )
-@click.option(
-    "--github",
-    help="GitHub username for structured deployment",
-)
-@click.option(
-    "--api-key",
-    help="Structured Cloud API key for structured deployment",
-)
-def deploy(script, target, port, log_level, github, api_key):  # noqa: C901
+def deploy(script, target, port, log_level):
     """
     Deploy your Preswald app.
 
@@ -246,72 +257,30 @@ def deploy(script, target, port, log_level, github, api_key):  # noqa: C901
                 "target": target,
                 "port": port,
                 "log_level": log_level,
-                "has_github": bool(github),
-                "has_api_key": bool(api_key),
             },
         )
 
-        if target == "structured":
-            click.echo("Starting production deployment... 🚀")
-            try:
-                service_url_message = None
-                for status_update in deploy_app(
-                    script,
-                    target,
-                    port=port,
-                    github_username=github.lower() if github else None,
-                    api_key=api_key,
-                ):
-                    status = status_update.get("status", "")
-                    message = status_update.get("message", "")
+        url = deploy_app(script, target, port=port)
 
-                    service_url_str = "App is available here "
-                    if service_url_str in message:
-                        service_url = message[len(service_url_str) :]
-                        service_url_message = service_url_str + service_url
-                        continue
+        # Deployment Success Message
+        success_message = f"""
 
-                    custom_subdomain_str = "Custom domain assigned at "
-                    if custom_subdomain_str in message:
-                        custom_subdomain = message[len(custom_subdomain_str) :]
-                        if custom_subdomain.strip():
-                            custom_subdomain_url = "https://" + custom_subdomain
-                            message = custom_subdomain_str + custom_subdomain_url
-                        elif service_url_message:
-                            message = service_url_message
+        ===========================================================\n
+        🎉 Deployment successful! ✅
 
-                    if status == "error":
-                        click.echo(click.style(f"❌ {message}", fg="red"))
-                    elif status == "success":
-                        click.echo(click.style(f"✅ {message}", fg="green"))
-                    else:
-                        click.echo(f"i {message}")
+        🌐 Your app is live and running at:
+        {url}
 
-            except Exception as e:
-                click.echo(click.style(f"Deployment failed: {e!s} ❌", fg="red"))
-                return
-        else:
-            url = deploy_app(script, target, port=port)
+        💡 Next Steps:
+            - Open the URL above in your browser to view your app
 
-            # Deployment Success Message
-            success_message = f"""
+        🚀 Deployment Summary:
+            - App: {script}
+            - Environment: {target}
+            - Port: {port}
+        """
 
-            ===========================================================\n
-            🎉 Deployment successful! ✅
-
-            🌐 Your app is live and running at:
-            {url}
-
-            💡 Next Steps:
-                - Open the URL above in your browser to view your app
-
-            🚀 Deployment Summary:
-                - App: {script}
-                - Environment: {target}
-                - Port: {port}
-            """
-
-            click.echo(click.style(success_message, fg="green"))
+        click.echo(click.style(success_message, fg="green"))
 
     except Exception as e:
         click.echo(click.style(f"Deployment failed: {e!s} ❌", fg="red"))
@@ -321,7 +290,7 @@ def deploy(script, target, port, log_level, github, api_key):  # noqa: C901
 @cli.command()
 @click.option(
     "--target",
-    type=click.Choice(["local", "gcp", "aws", "structured"], case_sensitive=False),
+    type=click.Choice(["local", "gcp", "aws"], case_sensitive=False),
     default="local",
     help="Target platform to stop the deployment from.",
 )
@@ -332,7 +301,7 @@ def stop(target):
     This command must be run from the same directory as your Preswald app.
     """
     try:
-        from preswald.deploy import cleanup_gcp_deployment, stop_structured_deployment
+        from preswald.deploy import cleanup_gcp_deployment
 
         # Track stop command
         telemetry.track_command("stop", {"target": target})
@@ -344,17 +313,6 @@ def stop(target):
 
         current_dir = os.getcwd()
         print(f"Current directory: {current_dir}")
-        if target == "structured":
-            try:
-                response_json = stop_structured_deployment(current_dir)
-                click.echo(response_json["message"])
-                click.echo(
-                    click.style(
-                        "✅ Production deployment stopped successfully.", fg="green"
-                    )
-                )
-            except Exception as e:
-                click.echo(click.style(f"❌ {e!s}", fg="red"))
         if target == "gcp":
             try:
                 click.echo("Starting GCP deployment cleanup... 🧹")
@@ -382,81 +340,6 @@ def stop(target):
             stop_local_deployment(current_dir)
             click.echo("Deployment stopped successfully. 🛑 ")
     except Exception:
-        sys.exit(1)
-
-
-@cli.command()
-def deployments():
-    """
-    Show all deployments for your Preswald app.
-
-    This command displays information about your deployments on Structured Cloud.
-    Must be run from the directory containing your Preswald app.
-    """
-    try:
-        script = os.path.join(os.getcwd(), ".env.structured")
-        if not os.path.exists(script):
-            click.echo(
-                click.style(
-                    "Error: No Preswald app found in current directory. ❌", fg="red"
-                )
-            )
-            return
-
-        # Track deployments command
-        telemetry.track_command("deployments", {})
-
-        from preswald.deploy import get_structured_deployments
-
-        try:
-            result = get_structured_deployments(script)
-
-            # Print user info
-            user = result.get("user", {})
-            click.echo("\n" + click.style("User Information:", fg="blue", bold=True))
-            click.echo(f"Username: {user.get('username')}")
-            click.echo(f"Email: {user.get('email')}")
-
-            # Print deployments
-            deployments = result.get("deployments", [])
-            click.echo("\n" + click.style("Deployments:", fg="blue", bold=True))
-
-            if not deployments:
-                click.echo("No active deployments found.")
-            else:
-                for deployment in deployments:
-                    status_color = "green" if deployment.get("isActive") else "yellow"
-                    click.echo(
-                        "\n"
-                        + click.style(
-                            f"Deployment ID: {deployment.get('id')}", bold=True
-                        )
-                    )
-                    click.echo(f"App ID: {deployment.get('appId')}")
-                    click.echo(
-                        click.style(
-                            f"Status: {deployment.get('status')}", fg=status_color
-                        )
-                    )
-                    click.echo(f"Created: {deployment.get('createdAt')}")
-                    click.echo(f"Last Updated: {deployment.get('updatedAt')}")
-                    click.echo(
-                        click.style(
-                            f"Active: {deployment.get('isActive')}", fg=status_color
-                        )
-                    )
-
-            # Print meta info
-            meta = result.get("meta", {})
-            click.echo("\n" + click.style("Meta Information:", fg="blue", bold=True))
-            click.echo(f"Total Deployments: {meta.get('total')}")
-            click.echo(f"Last Updated: {meta.get('timestamp')}")
-
-        except Exception as e:
-            click.echo(click.style(f"❌ {e!s}", fg="red"))
-            sys.exit(1)
-    except Exception as e:
-        click.echo(click.style(f"Error showing deployments: {e} ❌", fg="red"))
         sys.exit(1)
 
 
@@ -493,6 +376,114 @@ def tutorial(ctx):
     finally:
         # Change back to original directory
         os.chdir(current_dir)
+
+
+@cli.command()
+@click.option(
+    "--format",
+    type=click.Choice(["pdf", "html"]),
+    required=True,
+    help="Export format - pdf creates a static report, html creates an interactive web app",
+)
+@click.option("--output", type=click.Path(), help="Path to the output directory")
+@click.option(
+    "--client",
+    type=click.Choice(["auto", "websocket", "postmessage", "comlink"]),
+    default="comlink",
+    help="Communication client to use - auto will choose based on context",
+)
+def export(format, output, client):
+    """Export the current Preswald app as a PDF report or HTML app."""
+    # Check for preswald.toml and get entrypoint
+    config_path = "preswald.toml"
+    if not os.path.exists(config_path):
+        click.echo("Error: preswald.toml not found in current directory. ❌")
+        click.echo("Make sure you're in a Preswald project directory.")
+        return
+
+    import tomli
+
+    try:
+        with open(config_path, "rb") as f:
+            config = tomli.load(f)
+        if "project" not in config or "entrypoint" not in config["project"]:
+            click.echo(
+                "Error: entrypoint not defined in preswald.toml under [project] section. ❌"
+            )
+            return
+        script = config["project"]["entrypoint"]
+    except Exception as e:
+        click.echo(f"Error reading preswald.toml: {e} ❌")
+        return
+
+    if not os.path.exists(script):
+        click.echo(f"Error: Entrypoint script '{script}' not found. ❌")
+        return
+
+    if format == "pdf":
+        output_path = output or "preswald_report.pdf"
+        click.echo(f"📄 Rendering '{script}'...")
+
+        from preswald.main import render_once
+        from preswald.utils import export_app_to_pdf
+
+        layout = render_once(script)
+
+        click.echo(
+            f"✅ Render complete. Found {len(layout['rows'])} rows of components."
+        )
+
+        component_ids = []
+        for row in layout["rows"]:
+            for component in row:
+                cid = component.get("id")
+                ctype = component.get("type")
+                if cid and ctype:
+                    component_ids.append({"id": cid, "type": ctype})
+
+        # Pass the component IDs to the export function
+        export_app_to_pdf(component_ids, output_path)
+
+        click.echo(f"\n✅ Export complete. PDF saved to: {output_path}")
+
+    elif format == "html":
+        # Create output directory
+        output_dir = output or "preswald_export"
+        # os.makedirs(output_dir, exist_ok=True) # Handled by prepare_html_export
+
+        click.echo(f"📦 Exporting '{script}' to HTML...")
+
+        try:
+            from preswald.utils import (
+                prepare_html_export,  # Import the new utility function
+            )
+
+            # Call the centralized function for preparing HTML export files
+            # project_root_dir is "." because CLI operates from the current project directory
+            prepare_html_export(
+                script_path=script,
+                output_dir=output_dir,
+                project_root_dir=".",
+                client_type=client,
+            )
+
+            # The rest of the original logic specific to CLI (e.g. click.echo messages) remains.
+            # No need to duplicate fs_snapshot, static file copying, or index.html modification here.
+
+            click.echo(f"""
+✨ Export complete! Your interactive HTML app is ready:
+
+   📁 {output_dir}/
+      ├── index.html           # The main HTML file
+      ├── project_fs.json      # Your project files
+      └── assets/             # Required JavaScript and CSS
+
+Note: The app needs to be served via HTTP server - opening index.html directly won't work.
+""")
+
+        except Exception as e:
+            click.echo(f"❌ Export failed: {e!s}")
+            return
 
 
 if __name__ == "__main__":
